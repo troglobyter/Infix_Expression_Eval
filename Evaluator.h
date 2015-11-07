@@ -75,6 +75,16 @@ private:
 	bool is_operator(char ch1, char ch2);
 
 	/**
+	*Checks for membership of BINARY_OPERATORS vector.
+	*/
+	bool is_bin_op(string op);
+
+	/**
+	*Checks for membership of UNARY_OPERATORS
+	*/
+	bool is_un_op(string op);
+
+	/**
 	* Executes the given mathematical/logic operation using values
 	* from the operand_stack.
 	* @param op A mathematical/logic operation to execute.
@@ -94,8 +104,14 @@ private:
 
 	
 
-	/** Holds all of the supported operators to compare with given values. */
-	static const vector<string> OPERATORS;
+	/** Holds all of the supported unary operators to compare with given values. */
+	static const vector<string> UNARY_OPERATORS;
+
+	/** Holds all of the supported binary operators to compare with given values. */
+	static const vector<string> BINARY_OPERATORS;
+
+	/** Holds all of the supported parenthesis operators to compare with given values. */
+	static const vector<string> PARENS;
 
 	/** 
 	* Holds the precedence of each supported operator with an index

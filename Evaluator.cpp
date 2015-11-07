@@ -6,26 +6,29 @@
 #include "Evaluator.h"
 #include "Syntax_Error.h"
 #include <sstream>
-#include <cmath>
-#include <iostream>
-#include <fstream>
-#include <iomanip>
+
+
 using namespace std;
 
-const vector<string> Evaluator::OPERATORS = 
-						  { "==", "!=", "&&", "||", ">", ">=", "<", "<=",
-							"+", "-", "*", "/", "%", "^", "!", "++", "--",
-						    "(", ")", "[", "]", "{", "}", "}", "=", "&", "|" };
+const vector<string> Evaluator::UNARY_OPERATORS = { "!", "++", "--" };
 
-const int Evaluator::PRECEDENCE[] = { 1, 1, 2, 2, 3, 3, 3, 3,
-									     4, 4, 5, 5, 5, 6, 7, 7, 7,
-						                -1, -1, -1, -1, -1, -1 };
+const vector<string> Evaluator::BINARY_OPERATORS = { "==", "!=", "&&", "||", ">", ">=", "<", "<=", "+", "-", "*", "/", "%", "^" };
+
+const vector<string> Evaluator::PARENS = { "(", ")", "[", "]", "{", "}" };
+
+const int Evaluator::PRECEDENCE[] = { 8, 8, 8, 3, 3, 2, 2, 4, 4, 4, 4, 5, 5, 6, 6, 6, 7, -1, -1, -1, -1, -1, -1 };
 
 int Evaluator::get_operator(string op)
 {
-	for (size_t i = 0; i < OPERATORS.size(); i++)
-		if (OPERATORS[i] == op)
+	for (size_t i = 0; i < UNARY_OPERATORS.size(); i++)
+		if (UNARY_OPERATORS[i] == op)
 			return i;
+	for (size_t i = 0; i < BINARY_OPERATORS.size(); i++)
+		if (BINARY_OPERATORS[i] == op)
+			return ((UNARY_OPERATORS.size() -1) + i);
+	for (size_t i = 0; i < PARENS.size(); i++)
+		if (PARENS[i] == op)
+			return ((BINARY_OPERATORS.size() -1) + (UNARY_OPERATORS.size() -1) + i);
 	return -1;
 } // end get_operator
 
@@ -54,12 +57,26 @@ bool Evaluator::is_operator(char ch1, char ch2)
 	return is_operator(str);
 } // end is_operator(char, char)
 
+bool Evaluator::is_bin_op(string op){
+	for (int i = 0; i < BINARY_OPERATORS.size(); i++)
+		if (BINARY_OPERATORS[i] == op)
+			return true;
+	return false;
+}
+
+bool Evaluator::is_un_op(string op){
+	for (int i = 0; i < UNARY_OPERATORS.size(); i++)
+		if (UNARY_OPERATORS[i] == op)
+			return true;
+	return false;
+}
+
 int Evaluator::eval_op(string op)
 {
 	
 	if (operand_stack.empty())
 	{
-		--position; // Operand should have come before last character processed
+		// Operand should have come before last character processed
 		throw Syntax_Error("There are no more operands.");
 	}
 	
@@ -72,15 +89,12 @@ int Evaluator::eval_op(string op)
 	{
 		switch (get_operator(op))
 		{
-		case 14: return !rhs;
+		case 0: return !rhs;
 			break;
-		case 15: return ++rhs;
+		case 1: return ++rhs;
 			break;
-		case 16: return --rhs;
+		case 2: return --rhs;
 			break;
-		default: 
-			(position - 2); // Operator is 2 positions before last character
-			throw Syntax_Error("Not enough operands for operator");
 		}
 		
 	}
@@ -91,51 +105,49 @@ int Evaluator::eval_op(string op)
 
 		switch (get_operator(op))
 		{
-		case 0: return lhs == rhs;
+		case 3: return lhs == rhs;
 			break;
-		case 1: return lhs != rhs;
+		case 4: return lhs != rhs;
 			break;
-		case 2: return lhs && rhs;
+		case 5: return lhs && rhs;
 			break;
-		case 3: return lhs || rhs;
+		case 6: return lhs || rhs;
 			break;
-		case 4: return lhs > rhs;
+		case 7: return lhs > rhs;
 			break;
-		case 5: return lhs >= rhs;
+		case 8: return lhs >= rhs;
 			break;
-		case 6: return lhs < rhs;
+		case 9: return lhs < rhs;
 			break;
-		case 7: return lhs <= rhs;
+		case 10: return lhs <= rhs;
 			break;
-		case 8: return lhs + rhs;
+		case 11: return lhs + rhs;
 			break;
-		case 9: return lhs - rhs;
+		case 12: return lhs - rhs;
 			break;
-		case 10: return lhs * rhs;
+		case 13: return lhs * rhs;
 			break;
-		case 11: if (rhs != 0)
+		case 14: if (rhs != 0)
 			return lhs / rhs;
 				 else
 					 throw Syntax_Error("Cannot divide by zero.");
 			break;
-		case 12: return lhs % rhs;
+		case 15: return lhs % rhs;
 			break;
-		case 13: return pow(lhs, rhs);
-		default: 
-			(position - 2); // Operator is 2 positions before last character
-			throw Syntax_Error("Invalid operator."); 
+		case 16: return pow(lhs, rhs);
 		}
 	}
 } // end eval_op
+
 
 void Evaluator::process_operator(string op)
 {
 	if (operator_stack.empty() || (op == "(") || (op == "[") || (op == "{"))
 	{
 		if (op == ")" || op == "]" || op == "}")
-			throw Syntax_Error("Expression can't start with a closing parenthesis");
-		else if (op == ">" || op == "<" || op == ">=" || op == "<=" || op == "==" || op == "!=" || op == "&&" || op == "||")
-			throw Syntax_Error("Expression can't start with a logical operator");
+			throw Syntax_Error("Expression can't start with a closing parenthesis.");
+		if (op == ">" || op == "<" || op == ">=" || op == "<=" || op == "==" || op == "!=" || op == "&&" || op == "||")
+			throw Syntax_Error("Expression can't start with a logical operator.");
 
 		operator_stack.push(op);
 	}
@@ -154,10 +166,9 @@ void Evaluator::process_operator(string op)
 				&& (precedence(op) <= precedence(operator_stack.top())))
 			{
 				string current_op = operator_stack.top();
-				if ((current_op == "||" || current_op == "&&" || current_op == "==" || current_op == "!=") && (op == "&&" || op == "||" || op == "==" || op == "!="))
+				if (is_bin_op(current_op) && is_bin_op(op))
 					throw Syntax_Error("Cannot process two binary operators consecutively.");
-				if ((current_op == "!" || current_op == "++" || current_op == "--") && (op == "+" || op == "-" || op == "*" || op == "/" || op == "%" || op == "^" || op == "!=" || op == "=="
-					|| op == "&&" || op == "||" || op == ">" || op == "<" || op == ">" || op == "<=" || op == ">=" || op == "=" || op == "&" || op == "|"))
+				if (is_un_op(current_op) && is_bin_op(op ))
 					throw Syntax_Error("Unary operator cannot be followed by a binary operator.");
 
 				int result = eval_op(current_op);
@@ -202,27 +213,37 @@ int Evaluator::eval(string infix_literal)
 
 	while (infix_tokens >> next_token)
 	{
-		// Increase position as each token is processed.
-		++position;
+		// Increase position for each character that is numeric.
 		if (isdigit(next_token))
 		{
 			infix_tokens.putback(next_token);
-			int value;
-			infix_tokens >> value;
-			operand_stack.push(value);
+			string operand_string = "";
+			do{
+				++position;
+				infix_tokens >> next_token;
+				operand_string += next_token;
+			}
+			while (isdigit(next_token));
+
+			int operand_integer = stoi(operand_string);
+			operand_stack.push(operand_integer);
 		}
 		else if (is_operator(next_token))
 		{
 			char look_next;
 			infix_tokens >> look_next;
+			++position;
+
 			string op;
 			op += next_token;
 
 			// Checks for two character comparison or logical operator
 			if (is_operator(next_token, look_next)) 
 				op += look_next;
-			else
-				infix_tokens.putback(look_next); 
+			else{
+				infix_tokens.putback(look_next);
+				--position;
+			}
 
 			process_operator(op);
 		}
